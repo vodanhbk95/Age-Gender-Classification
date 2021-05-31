@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
 
 from torchvision import models
-from torch.autograd import Variable
-
 
 class AgeGenderModel(torch.nn.Module,):
     def __init__(self):
@@ -18,6 +15,8 @@ class AgeGenderModel(torch.nn.Module,):
 
         self.fc2 = nn.Linear(512, 512)
         self.gen_cls_pred = nn.Linear(512, 2)
+        
+        self.dropout = nn.Dropout(0.5)
 
     def get_resnet_convs_out(self, x):
 
@@ -37,9 +36,10 @@ class AgeGenderModel(torch.nn.Module,):
         
         last_conv_out = self.resNet.avgpool(last_conv_out)
         last_conv_out = last_conv_out.view(last_conv_out.size(0), -1)
-
+        last_conv_out = self.dropout(last_conv_out)
+        
         age_pred = F.relu(self.fc1(last_conv_out))
-        age_cls_pred = F.softmax(self.age_cls_pred(age_pred), 1)
+        age_cls_pred = self.age_cls_pred(age_pred)
         age_reg_pred = self.age_reg_pred(age_cls_pred)
         
         gen_pred = F.relu(self.fc2(last_conv_out))

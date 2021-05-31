@@ -50,9 +50,9 @@ for n in range(len(imdb_gender)):
 
 for n in range(len(wiki_gender)):
     if wiki_gender[n] == 1:
-        wiki_genders.append('male')
+        wiki_genders.append(0)
     else:
-        wiki_genders.append('female')
+        wiki_genders.append(1)
 
 imdb_dob = []
 wiki_dob = []
@@ -73,6 +73,7 @@ for file in imdb_path:
     imdb_dob.append('-'.join(temp))
 
 for file in wiki_path:
+    # import ipdb; ipdb.set_trace()
     wiki_dob.append(file.split('_')[2])
 
 imdb_age = []
