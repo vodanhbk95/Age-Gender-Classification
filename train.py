@@ -14,8 +14,8 @@ from model import AgeGenderModel
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
 
-train_csv = 'process_imdb-wiki/train.csv'
-test_csv = 'process_imdb-wiki/test.csv'
+train_csv = 'process_imdb-wiki/train_combinedataset.csv'
+test_csv = 'process_imdb-wiki/test_combinedataset.csv'
 
 # define transforms
 transform_train = transforms.Compose([
@@ -46,7 +46,10 @@ lr = 1e-3
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model = AgeGenderModel()
+ckpt = torch.load('./outputs/model_epoch_50.pth')
+model.load_state_dict(ckpt['model_state_dict'])
 model = nn.DataParallel(model)
+
 model.to(device)
 train_data = AgeGender(train_csv, transform=transform_train)
 valid_data = AgeGender(test_csv, transform=transform_test)
@@ -69,8 +72,8 @@ for epoch in range(epochs):
     valid_loss, valid_mae_age, valid_accuracy_gender, valid_accuracy_age_cls = train(model, valid_loader, optimizer, scheduler, criterion1, criterion2, valid_data, phase="valid")
     print(f'Loss cls {valid_loss} | Age mae {valid_mae_age} | Gender acc {valid_accuracy_gender} | Bin accuracy {valid_accuracy_age_cls}')
     scheduler.step()
-    if not os.path.exists('./outputs'):
-        os.makedirs('./outputs')
+    if not os.path.exists('./outputs_final'):
+        os.makedirs('./outputs_final')
     #save checkpoint
     if epoch_start % 5 == 0:
         torch.save({
@@ -79,5 +82,5 @@ for epoch in range(epochs):
             'optimizer_state_dict': optimizer.state_dict(),
             'loss1': criterion1,
             'loss2': criterion2,
-            }, './outputs/model_epoch_{}.pth'.format(epoch_start)
+            }, './outputs_final/model_epoch_{}.pth'.format(epoch_start)
         )
