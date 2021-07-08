@@ -4,6 +4,7 @@ import imageio
 import torch
 from PIL import Image 
 from model import AgeGenderModel
+from mix_model import MixModel
 from torchvision.transforms import transforms
 from tqdm import tqdm
 from retinaface.pre_trained_models import get_model
@@ -17,9 +18,10 @@ transform = transforms.Compose([
 ])
 
 # Load model age gender
-model = AgeGenderModel()
+model = MixModel()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-ckpt = torch.load("outputs_final/model_epoch_50.pth")
+ckpt = torch.load("outputs_w_free/model_epoch_50.pth")
+
 model.load_state_dict(ckpt['model_state_dict'])
 model.eval()
 model.to(device)
@@ -31,8 +33,8 @@ model_face.eval()
 detector = dlib.get_frontal_face_detector()
 FPS = 30
 # read the video
-out_video = imageio.get_writer("demo_osaka_full.mp4", format='mp4', mode='I', fps=FPS)
-video = imageio.get_reader("osaka.mp4")
+out_video = imageio.get_writer("/home/cybercore/haimd/w_freeze_osaka.mp4", format='mp4', mode='I', fps=FPS)
+video = imageio.get_reader("/home/cybercore/haimd/osaka.mp4")
 for img in tqdm(video):
     if img is not None:
         # gray = cv2.cvtColor(src=img, code=cv2.COLOR_BGR2GRAY)
@@ -58,13 +60,13 @@ for img in tqdm(video):
             x2_face = bbox[2]+20
             y2_face = bbox[3]+20
             if x1_face > 0 and y1_face > 0:
-                # img_face = img[y1-50:y2+50, x1-50:x2+50]
+                
                 img_face = img[y1_face:y2_face, x1_face:x2_face]
-                # print(y1-50,y2+50, x1-50,x2+50)
+                
                 imageio.imwrite('face.jpg', img_face)
                 img_face = Image.fromarray(img_face)
                 img_face = transform(img_face)
-                # img_face.save('face_pil.jpg')
+
                 img_face = torch.unsqueeze(img_face, 0)
                 img_face = img_face.to(device)       
 

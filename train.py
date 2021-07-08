@@ -7,10 +7,13 @@ import torch.optim as optim
 
 from torchvision.transforms import transforms
 from torch.utils.data import DataLoader
+from collections import OrderedDict
 
 from dataloader import AgeGender
 from utils import train
 from model import AgeGenderModel
+from model_irse import IR_50
+from mix_model import MixModel
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0, 1"
 
@@ -38,19 +41,24 @@ transform_test = transforms.Compose([
 
 
 # Parameter
-batch_size = 512
+batch_size = 128
 epochs = 50
 lr = 1e-3
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-model = AgeGenderModel()
-ckpt = torch.load('./outputs/model_epoch_50.pth')
-model.load_state_dict(ckpt['model_state_dict'])
+model = MixModel()
+ckpt = torch.load('IR_50_E15.pth')
+new_state_dict = OrderedDict()
+for k, v in ckpt.items():
+    name = "model_irse."+ k
+    new_state_dict[name] = v
+# model = AgeGenderModel()
+model.load_state_dict(new_state_dict, strict=False)
 model = nn.DataParallel(model)
-
 model.to(device)
+
 train_data = AgeGender(train_csv, transform=transform_train)
 valid_data = AgeGender(test_csv, transform=transform_test)
 
@@ -66,14 +74,23 @@ criterion2 = nn.L1Loss()
 
 for epoch in range(epochs):
     epoch_start = epoch + 1
+    
+    if epoch <= 5:
+        for name, param in model.named_parameters():
+            if param.requires_grad and 'model_irse' in name:
+                param.requires_grad = False
+    else:
+        for name, param in model.named_parameters():
+            param.requires_grad = True
+        
     print(f'Epoch {epoch_start} of {epochs}')
     train_loss, train_mae_age, train_accuracy_gender, train_accuracy_age_cls = train(model, train_loader, optimizer, scheduler, criterion1, criterion2, train_data, phase="train")
     print(f'Loss total {train_loss} | Age mae {train_mae_age} | Gender acc {train_accuracy_gender} | Bin accuracy {train_accuracy_age_cls}')
     valid_loss, valid_mae_age, valid_accuracy_gender, valid_accuracy_age_cls = train(model, valid_loader, optimizer, scheduler, criterion1, criterion2, valid_data, phase="valid")
     print(f'Loss cls {valid_loss} | Age mae {valid_mae_age} | Gender acc {valid_accuracy_gender} | Bin accuracy {valid_accuracy_age_cls}')
     scheduler.step()
-    if not os.path.exists('./outputs_final'):
-        os.makedirs('./outputs_final')
+    if not os.path.exists('./outputs_w_free'):
+        os.makedirs('./outputs_w_free')
     #save checkpoint
     if epoch_start % 5 == 0:
         torch.save({
@@ -82,5 +99,5 @@ for epoch in range(epochs):
             'optimizer_state_dict': optimizer.state_dict(),
             'loss1': criterion1,
             'loss2': criterion2,
-            }, './outputs_final/model_epoch_{}.pth'.format(epoch_start)
+            }, './outputs_w_free/model_epoch_{}.pth'.format(epoch_start)
         )

@@ -33,8 +33,8 @@ class AgeGenderModel(torch.nn.Module,):
         return x
 
     def get_age_gender(self, last_conv_out):
-        
-        last_conv_out = self.resNet.avgpool(last_conv_out)
+
+        last_conv_out = self.resNet.avgpool(last_conv_out)        
         last_conv_out = last_conv_out.view(last_conv_out.size(0), -1)
         last_conv_out = self.dropout(last_conv_out)
         
@@ -49,12 +49,14 @@ class AgeGenderModel(torch.nn.Module,):
 
     def forward(self, x):
         last1 = self.get_resnet_convs_out(x)
+        
         gen_pred, age_cls_pred, age_reg_pred = self.get_age_gender(last1)
         return gen_pred, age_cls_pred, age_reg_pred
 
 
 if __name__ == '__main__':
     a = AgeGenderModel()
+    # import ipdb; ipdb.set_trace()
     x = torch.zeros((1,3,112,112))
     out = a(x)
     print('All good')

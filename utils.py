@@ -49,6 +49,7 @@ def train(model, dataloader, optimizer, scheduler, criterion1, criterion2, train
         if phase == "train":
             sum_cls_loss.backward()     
             optimizer.step()
+            scheduler.step()
     
         
 
